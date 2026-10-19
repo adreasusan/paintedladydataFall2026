@@ -396,7 +396,7 @@ function doGet(e) {
 </div>
 
 <script>
-let scriptUrl = localStorage.getItem('bf_script_url') || 'https://script.google.com/macros/s/AKfycbynt24y8r7wuRq1uubfXIJYaDn_naoGv_iQDVywudC3i3hKAOgy82t2BSFutqrvhndwLg/exec';
+let scriptUrl = localStorage.getItem('bf_script_url') || 'https://script.google.com/macros/s/AKfycbwexAJSgpdBBm8G3RrNJfKbsj7AK2K3EVgCNqkKDa9LDB6S7aqGYHJyjNq1c8DGfpM/exec';
 
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('f-date').value = new Date().toISOString().split('T')[0];
