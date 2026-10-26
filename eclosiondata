@@ -91,11 +91,7 @@
       <div class="hmark">🦋</div>
       <div class="header-text">
         <h1>Eclosion Log</h1>
-        <div class="sub">Vanessa cardui &nbsp;·&nbsp; Evolutionary Biology &nbsp;·&nbsp; Spring 2026</div>
-        <div class="nav-links">
-          <a href="larval_form.html">🐛 Switch to Larval Log</a>
-          <a href="dashboard.html">📊 Dashboard</a>
-        </div>
+        <div class="sub">Vanessa cardui &nbsp;·&nbsp; Evolutionary Biology &nbsp;·&nbsp; Fall 2026</div>
       </div>
     </div>
     <div class="status-bar">
@@ -200,7 +196,7 @@
 </div>
 
 <script>
-var HARDCODED_URL = 'https://script.google.com/a/macros/miracosta.edu/s/AKfycbyu8Oo0kVrJ4gPgazTVXFwLI0pBL7GuA1Cxv7wiVjucqbSuOXMa7I07skOB5UgedXCJIQ/exec';
+var HARDCODED_URL = 'https://script.google.com/macros/s/AKfycbzfVlGoJAYB9N6vatZJTPfRv3KGjLrfc6C8WKANDaj2svkqTJJ3YygKbHXKe-ioqfY/exec';
 var scriptUrl = localStorage.getItem('bf_eclosion_script_url') || HARDCODED_URL;
 
 window.onload = function() {
