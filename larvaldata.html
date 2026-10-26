@@ -177,16 +177,17 @@
         </select>
       </div>
       <div class="field">
-        <label>Total Caterpillars <span class="req">*</span></label>
-        <input type="number" id="f-total" min="1" max="30" placeholder="e.g. 10" oninput="updateTable()">
-      </div>
-      <div class="field">
         <label>Living Caterpillars <span class="req">*</span></label>
-        <input type="number" id="f-alive" min="0" placeholder="e.g. 9">
+        <input type="number" id="f-alive" min="0" placeholder="e.g. 9" oninput="calcTotal()">
       </div>
       <div class="field">
         <label>Deaths Since Last Obs.</label>
-        <input type="number" id="f-deaths" min="0" placeholder="0">
+        <input type="number" id="f-deaths" min="0" placeholder="0" oninput="calcTotal()">
+      </div>
+      <div class="field">
+        <label>Total Caterpillars — auto-calculated</label>
+        <div class="avg-display" id="total-display">—</div>
+        <input type="hidden" id="f-total">
       </div>
       <div class="field">
         <label>Observer(s)</label>
@@ -397,7 +398,6 @@ let scriptUrl = localStorage.getItem('bf_script_url') || 'https://script.google.
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('f-date').value = new Date().toISOString().split('T')[0];
   document.getElementById('script-url').value = scriptUrl;
-  document.getElementById('f-total').value = 10;
   initRows(10);
   updateStatus();
 });
@@ -417,6 +417,14 @@ function updateStatus() {
   }
 }
 
+function calcTotal() {
+  const alive = parseInt(document.getElementById('f-alive').value) || 0;
+  const deaths = parseInt(document.getElementById('f-deaths').value) || 0;
+  const total = alive + deaths;
+  document.getElementById('total-display').textContent = total > 0 ? total : '—';
+  document.getElementById('f-total').value = total > 0 ? total : '';
+}
+
 // ── Table ──────────────────────────────────────────────────────────────────
 function initRows(n) {
   document.getElementById('cat-tbody').innerHTML = '';
@@ -428,10 +436,11 @@ function updateTable() {
   const n = parseInt(document.getElementById('f-total').value) || 0;
   const tbody = document.getElementById('cat-tbody');
   const existing = tbody.querySelectorAll('tr').length;
-  if (n > existing) for (let i = existing + 1; i <= n; i++) addRow(i);
-  else if (n < existing) {
-    const rows = tbody.querySelectorAll('tr');
-    for (let i = existing; i > n; i--) rows[i-1].remove();
+  if (n > existing) {
+    for (let i = existing + 1; i <= n; i++) addRow(i);
+  } else if (n < existing && n >= 0) {
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    for (let i = existing - 1; i >= n; i--) rows[i].remove();
   }
   renumberRows();
   calcAverages();
@@ -485,7 +494,7 @@ function calcAverages() {
 
 // ── Validation & data collection ───────────────────────────────────────────
 function validate() {
-  const required = ['f-date','f-hatched','f-container','f-campus','f-temp','f-diet','f-total','f-alive'];
+  const required = ['f-date','f-hatched','f-container','f-campus','f-temp','f-diet','f-alive'];
   let ok = true;
   required.forEach(id => {
     const el = document.getElementById(id);
@@ -524,10 +533,10 @@ function collectData() {
 
 function clearForm() {
   ['f-date','f-hatched','f-container','f-campus','f-temp','f-diet',
-   'f-total','f-alive','f-deaths','f-observers','f-notes']
+   'f-alive','f-deaths','f-observers','f-notes']
     .forEach(id => { document.getElementById(id).value = ''; });
   document.getElementById('f-date').value = new Date().toISOString().split('T')[0];
-  document.getElementById('f-total').value = 10;
+  document.getElementById('total-display').textContent = '—';
   initRows(10);
   document.getElementById('local-note').textContent = '';
 }
