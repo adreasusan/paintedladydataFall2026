@@ -168,10 +168,6 @@
         </select>
       </div>
       <div class="field">
-        <label>New Pupations Today</label>
-        <input type="number" id="f-new-pupations" min="0" placeholder="0" oninput="calcTotal()">
-      </div>
-      <div class="field">
         <label>Total Pupae Alive <span class="req">*</span></label>
         <input type="number" id="f-alive" min="0" placeholder="e.g. 5" oninput="calcTotal()">
       </div>
@@ -254,6 +250,7 @@
     <h3>Step 2 — Paste this script</h3>
     <div class="code-block" id="script-code">const CENTRAL_SHEET_ID = '16hI-nNTciADPBjI6O0lrUrAxIbYRC6sXHyzU26jb5AE';
 const PUPAL_TAB        = 'Pupal development';
+const FOLDER_ID        = '1VAeDuDnkAA8OmAcEqd3yjcQT74QQ_noC';
 
 function doPost(e) {
   try {
@@ -267,26 +264,47 @@ function doPost(e) {
 }
 
 function writePupal(data) {
-  const central = SpreadsheetApp.openById(CENTRAL_SHEET_ID);
-  let sheet = central.getSheetByName(PUPAL_TAB);
-  if (!sheet) sheet = central.insertSheet(PUPAL_TAB);
-
-  if (sheet.getLastRow() === 0) {
-    sheet.appendRow([
-      'Date','Campus','Temperature','Diet','Cup_ID',
-      'New_Pupations','Total_Pupae_Alive','Pupal_Deaths',
-      'Avg_Pupa_Length_mm','Avg_Pupa_Width_mm',
-      'Observer','Notes'
-    ]);
-    sheet.getRange(1,1,1,12).setFontWeight('bold').setBackground('#d4e8d8');
-  }
-
-  sheet.appendRow([
+  const HEADERS = [
+    'Date','Campus','Temperature','Diet','Cup_ID',
+    'Total_Pupae_Alive','Pupal_Deaths',
+    'Avg_Pupa_Length_mm','Avg_Pupa_Width_mm',
+    'Observer','Notes'
+  ];
+  const ROW = [
     data.date, data.campus, data.temp, data.diet, data.container,
-    data.newPupations, data.alive, data.deaths,
+    data.alive, data.deaths,
     data.avgLen, data.avgWid,
     data.observers, data.notes
-  ]);
+  ];
+
+  // 1 — Per-container workbook in Drive
+  const folder = DriveApp.getFolderById(FOLDER_ID);
+  const fileName = data.container + '_pupal';
+  let ss;
+  const existing = folder.getFilesByName(fileName);
+  if (existing.hasNext()) {
+    ss = SpreadsheetApp.open(existing.next());
+  } else {
+    ss = SpreadsheetApp.create(fileName);
+    DriveApp.getFileById(ss.getId()).moveTo(folder);
+  }
+  let sheet = ss.getSheetByName(PUPAL_TAB);
+  if (!sheet) sheet = ss.insertSheet(PUPAL_TAB);
+  if (sheet.getLastRow() === 0) {
+    sheet.appendRow(HEADERS);
+    sheet.getRange(1,1,1,HEADERS.length).setFontWeight('bold').setBackground('#d4e8d8');
+  }
+  sheet.appendRow(ROW);
+
+  // 2 — Central sheet
+  const central = SpreadsheetApp.openById(CENTRAL_SHEET_ID);
+  let cSheet = central.getSheetByName(PUPAL_TAB);
+  if (!cSheet) cSheet = central.insertSheet(PUPAL_TAB);
+  if (cSheet.getLastRow() === 0) {
+    cSheet.appendRow(HEADERS);
+    cSheet.getRange(1,1,1,HEADERS.length).setFontWeight('bold').setBackground('#d4e8d8');
+  }
+  cSheet.appendRow(ROW);
 
   return ContentService
     .createTextOutput(JSON.stringify({success: true}))
@@ -422,7 +440,7 @@ function collectData() {
     campus: document.getElementById('f-campus').value,
     temp: document.getElementById('f-temp').value,
     diet: document.getElementById('f-diet').value,
-    newPupations: document.getElementById('f-new-pupations').value || 0,
+    newPupations: '',
     alive: document.getElementById('f-alive').value,
     deaths: document.getElementById('f-deaths').value || 0,
     observers: document.getElementById('f-observers').value,
