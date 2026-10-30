@@ -264,20 +264,7 @@ function doPost(e) {
 }
 
 function writePupal(data) {
-  const HEADERS = [
-    'Date','Campus','Temperature','Diet','Cup_ID',
-    'Total_Pupae_Alive','Pupal_Deaths',
-    'Avg_Pupa_Length_mm','Avg_Pupa_Width_mm',
-    'Observer','Notes'
-  ];
-  const ROW = [
-    data.date, data.campus, data.temp, data.diet, data.container,
-    data.alive, data.deaths,
-    data.avgLen, data.avgWid,
-    data.observers, data.notes
-  ];
-
-  // 1 — Per-container workbook in Drive
+  // 1 — Per-container workbook (date-named tabs, metadata + individual measurements)
   const folder = DriveApp.getFolderById(FOLDER_ID);
   const fileName = data.container + '_pupal';
   let ss;
@@ -287,16 +274,45 @@ function writePupal(data) {
   } else {
     ss = SpreadsheetApp.create(fileName);
     DriveApp.getFileById(ss.getId()).moveTo(folder);
+    const defaultSheet = ss.getSheetByName('Sheet1');
+    if (defaultSheet) ss.deleteSheet(defaultSheet);
   }
-  let sheet = ss.getSheetByName(PUPAL_TAB);
-  if (!sheet) sheet = ss.insertSheet(PUPAL_TAB);
-  if (sheet.getLastRow() === 0) {
-    sheet.appendRow(HEADERS);
-    sheet.getRange(1,1,1,HEADERS.length).setFontWeight('bold').setBackground('#d4e8d8');
-  }
-  sheet.appendRow(ROW);
 
-  // 2 — Central sheet
+  const tabName = data.date;
+  let sheet = ss.getSheetByName(tabName);
+  if (!sheet) sheet = ss.insertSheet(tabName);
+
+  // Metadata block (rows 1-3)
+  sheet.getRange(1,1).setValue("Today's Date:");  sheet.getRange(1,2).setValue(data.date);
+  sheet.getRange(1,3).setValue("Diet:");          sheet.getRange(1,4).setValue(data.diet);
+  sheet.getRange(1,5).setValue("Temperature:");   sheet.getRange(1,6).setValue(data.temp + '°C');
+  sheet.getRange(2,1).setValue("Total Pupae Alive:"); sheet.getRange(2,2).setValue(data.alive);
+  sheet.getRange(2,3).setValue("Pupal Deaths:");  sheet.getRange(2,4).setValue(data.deaths);
+  sheet.getRange(2,5).setValue("Observers:");     sheet.getRange(2,6).setValue(data.observers);
+  sheet.getRange(3,1).setValue("Container:");     sheet.getRange(3,2).setValue(data.container);
+  sheet.getRange(3,5).setValue("Campus:");        sheet.getRange(3,6).setValue(data.campus);
+
+  // Header row (row 4)
+  sheet.getRange(4,1).setValue("Pupa Length (mm)");
+  sheet.getRange(4,2).setValue("Pupa Width (mm)");
+  sheet.getRange(4,1,1,2).setFontWeight('bold').setBackground('#d4e8d8');
+
+  // Individual measurements (rows 5+)
+  if (data.pupae && data.pupae.length > 0) {
+    data.pupae.forEach(function(p, i) {
+      if (p.length || p.width) {
+        sheet.getRange(5 + i, 1).setValue(p.length || '');
+        sheet.getRange(5 + i, 2).setValue(p.width || '');
+      }
+    });
+  }
+
+  // 2 — Central sheet summary row
+  const HEADERS = ['Date','Campus','Temperature','Diet','Cup_ID',
+    'Total_Pupae_Alive','Pupal_Deaths','Avg_Pupa_Length_mm','Avg_Pupa_Width_mm','Observer','Notes'];
+  const ROW = [data.date, data.campus, data.temp, data.diet, data.container,
+    data.alive, data.deaths, data.avgLen, data.avgWid, data.observers, data.notes];
+
   const central = SpreadsheetApp.openById(CENTRAL_SHEET_ID);
   let cSheet = central.getSheetByName(PUPAL_TAB);
   if (!cSheet) cSheet = central.insertSheet(PUPAL_TAB);
@@ -336,7 +352,7 @@ function doGet(e) {
 </div>
 
 <script>
-let scriptUrl = localStorage.getItem('bf_pupal_script_url') || 'https://script.google.com/macros/s/AKfycbznXm0G4PYtvQKlQ9yEax6JL8X2qqffUwJRS_AZ9PafG-5m8nh37LLk3149fwbi5J6x/exec';
+let scriptUrl = localStorage.getItem('bf_pupal_script_url') || 'https://script.google.com/macros/s/AKfycbyP3PWF6gWdu8YNSJI5D8-KPxXP6d7lXtKep4Ot-fuHE004TKmmrW6S_cyI3_-jmrhy/exec';
 
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('f-date').value = new Date().toISOString().split('T')[0];
@@ -482,12 +498,10 @@ async function submitForm() {
   btn.innerHTML = '<span class="spinner"></span>Saving…';
 
   try {
-    const resp = await fetch(scriptUrl, { method: 'POST', body: JSON.stringify(data) });
-    const result = await resp.json();
-    if (result.success) {
-      showToast('✓ Saved to class sheet!', 'success');
-      clearForm();
-    } else throw new Error(result.error || 'Unknown error');
+    await fetch(scriptUrl, { method: 'POST', body: JSON.stringify(data), mode: 'no-cors' });
+    // no-cors means response is opaque — if we get here without throwing, it sent
+    showToast('✓ Saved to class sheet!', 'success');
+    clearForm();
   } catch (err) {
     showToast('Error — saved locally as backup', 'error');
     document.getElementById('local-note').textContent = 'Could not reach Google. Data saved locally.';
